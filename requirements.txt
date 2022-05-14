@@ -1,0 +1,10 @@
+bibtexparser
+gitpython
+requests
+bs4
+lxml
+scipy
+numpy
+pandas
+matplotlib
+tqdm
