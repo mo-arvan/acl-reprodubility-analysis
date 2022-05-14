@@ -61,11 +61,12 @@ def is_major_conference(acl_entry_dict):
                                if "booktitle" in acl_entry_dict])
     # emnlp_title = "Proceedings of the 2021 Conference on Empirical Methods in Natural Language Processing"
     # r = acl_entry_dict["booktitle"] == emnlp_title
-    return is_major_conference  # and not is_workshop and not is_tutorial
+    return is_major_conference and not is_workshop and not is_tutorial
 
 
 def plot_major_conferences_code_submission_ratio_from_2014(acl_data, plot_dir):
     filtered_data = acl_data
+
     filter_fn_list = [
         functools.partial(newer_than, year=2014),
         # has_code,
@@ -165,6 +166,9 @@ def main():
 
     acl_anthology = load_anthology(anthology_json_path)
 
+    for acl_entry in acl_anthology:
+        if "booktitle" in acl_entry:
+            acl_entry["booktitle"] = acl_entry["booktitle"].replace("{", "").replace("}", "")
     plot_major_conferences_code_submission_ratio_from_2014(acl_anthology, plot_dir)
 
     plot_conferences_code_submission_ratio_from_2018(acl_anthology, plot_dir)
