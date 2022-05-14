@@ -178,10 +178,9 @@ def get_github_information(entry: dict):
         github_url_api = github_url.replace("github.com/", "api.github.com/repos/")
         if len(github_url_api.split("/")) != 6:
             github_url_api = "/".join(github_url_api.split("/")[:6])
-        github_token = "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"
-        headers = {'Authorization': 'token ' + github_token}
         try:
-            github_page_response = requests.get(url=github_url_api, timeout=30, headers=headers)
+            global GLOBAL_HEADERS
+            github_page_response = requests.get(url=github_url_api, timeout=30, headers=GLOBAL_HEADERS)
             if github_page_response.status_code != 200:
                 result["github_status"] = "error {}".format(github_page_response.status_code)
             else:
