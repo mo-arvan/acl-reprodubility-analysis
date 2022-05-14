@@ -11,5 +11,10 @@ python process_anthology.py --anthology_path "data/anthology.bib" --export_dir "
 
 ```bash
 cd acl-reproduciblity-analysis
-docker build -f src/docker/Dockerfile -t acl-rep .
+
+docker build -f docker/Dockerfile -t acl-rep-analysis-image .
+
+
+docker save --output acl-rep-analysis-image.tar acl-rep-analysis-image
+docker load --input acl-rep-analysis-image.tar
 ```
