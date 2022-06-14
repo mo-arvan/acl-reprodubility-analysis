@@ -144,13 +144,13 @@ def get_entry_github_url(entry):
     return github_url_api
 
 
-def has_reached_github_api_limit():
+def has_reached_github_api_limit(github_auth_token):
     rate_limit_url = "https://api.github.com/rate_limit"
     try:
         global GLOBAL_HEADERS
         headers = dict(GLOBAL_HEADERS)
-        github_token = "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"
-        headers['Authorization'] = 'token ' + github_token
+        if github_auth_token != "":
+            headers['Authorization'] = 'token ' + github_auth_token
         response = requests.get(rate_limit_url, headers=headers)
         if response.status_code != 200:
             return True
