@@ -1,3 +1,3 @@
-#/etc/bash!
+#!/etc/bash!
 
 python cv.py
