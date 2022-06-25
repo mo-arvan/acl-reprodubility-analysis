@@ -9,3 +9,4 @@ pandas
 matplotlib
 tqdm
 seaborn
+jinja2

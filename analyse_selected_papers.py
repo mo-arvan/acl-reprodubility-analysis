@@ -5,7 +5,7 @@ import numpy as np
 import re
 import random
 import argparse
-
+import datetime
 import pandas as pd
 import requests
 import csv
@@ -101,7 +101,7 @@ def plot_major_conferences_code_submission_ratio_from_2014(acl_data, plot_dir):
         submissions_with_code=('has_code', 'sum'),
         submissions_with_software=('has_software', 'sum'),
         total_submissions=('has_code', 'count')).reset_index()
-    agg_result["code_ratio"] = agg_result["submissions_with_code"] / agg_result["total_submissions"] * 100
+    agg_result["code_ratio"] = agg_result["submissions_with_code"] / agg_result["total_submissions"]
     agg_result["software_ratio"] = agg_result["submissions_with_software"] / agg_result["total_submissions"]
     year_set = list(sorted(set([entry["year"] for entry in filtered_data])))
 
@@ -122,11 +122,9 @@ def plot_major_conferences_code_submission_ratio_from_2014(acl_data, plot_dir):
                                              x="year",
                                              y="submissions_with_code",
                                              hue="conference",
-                                             style="conference",
-                                             markers=True,
                                              kind="line",
                                              facet_kws={'legend_out': True}) \
-        .set(xlabel="Year", ylabel="# Published Papers with Code")
+        .set(xlabel="Year", ylabel="Submissions with Code")
     submissions_with_code_plot._legend.set_title('Conference')
     # submissions_with_code_plot_legend = submissions_with_code_plot._legend
     # submissions_with_code_plot_legend.set_title('Conference')
@@ -137,22 +135,11 @@ def plot_major_conferences_code_submission_ratio_from_2014(acl_data, plot_dir):
                                                    x="year",
                                                    y="code_ratio",
                                                    hue="conference",
-                                                   style="conference",
-                                                   markers=True,
                                                    kind="line",
                                                    facet_kws={'legend_out': True}) \
-        .set(xlabel="Year", ylabel="% Published Papers with Code")
+        .set(xlabel="Year", ylabel="Code Submission Ratio")
     submission_with_code_ration_plot._legend.set_title('Conference')
     submission_with_code_ration_plot.savefig(file_name + "_2.svg")
-
-    # # define grid
-    # g = sns.FacetGrid(data=agg_result,
-    #                   col='day', hue='sex', col_wrap=2)
-    # # add density plots to each plot
-    # g.map(sns.kdeplot, 'tip')
-    #
-    # # add legend
-    # g.add_legend()
 
     # sns.relplot(data=agg_result,
     #             x="year",
@@ -228,18 +215,56 @@ def main():
     parser = argparse.ArgumentParser(description='Downloading reproducibility data for ACL Anthology')
     parser.add_argument("--anthology_json_path", type=str)
     parser.add_argument("--plot_dir", type=str)
+    parser.add_argument("--selected_papers", type=str)
     sns.set_theme()
     sns.set_style("darkgrid")
 
     args = parser.parse_args()
     anthology_json_path = args.anthology_json_path
     plot_dir = args.plot_dir
+    selected_papers = args.selected_papers
 
     acl_anthology = load_anthology(anthology_json_path)
     preprocess_acl_data(acl_anthology)
 
-    plot_major_conferences_code_submission_ratio_from_2014(acl_anthology, plot_dir)
+    acl_anthology_df = pd.DataFrame(acl_anthology)
+    selected_papers_id_df = pd.read_csv(selected_papers)
 
+    emnlp_2021_df = acl_anthology_df[
+        np.logical_and(
+            np.logical_and(acl_anthology_df["conference"] == "EMNLP",
+                           acl_anthology_df["year"] == 2021),
+            acl_anthology_df["github_status"] == "success")
+    ]
+    emnlp_2021_df["days_since_last_update"] = emnlp_2021_df['updated_at'].apply(lambda x:
+                                                                                (datetime.datetime(2022, 6, 15) -
+                                                                                 datetime.datetime.strptime(x,
+                                                                                                            "%Y-%m-%dT%H:%M:%SZ")).days)
+
+    selected_papers_info_df = selected_papers_id_df.merge(emnlp_2021_df, on=["ID"], how="left")
+
+    agg_dict = {
+        "conference": ['count'],
+        'stargazers_count': ['mean', 'std'],
+        'forks_count': ['mean', 'std'],
+        'open_issues_count': ['mean', 'std'],
+        'days_since_last_update': ['mean', 'std']
+    }
+    emnlp_agg_df = emnlp_2021_df.groupby("conference").agg(agg_dict).reset_index()
+
+    final_result = selected_papers_info_df[
+        ["title", "stargazers_count", "forks_count", "open_issues_count", "days_since_last_update"]]
+
+    emnlp_dict = {"title": "EMNLP"}
+    for key in agg_dict.keys():
+        if key == "conference":
+            continue
+        emnlp_dict[key] = str(round(emnlp_agg_df[(key, "mean")][0], 2)) + " +- " + str(round(emnlp_agg_df[(key, "std")][0]))
+    final_result = final_result.append(emnlp_dict, ignore_index=True)
+    final_result["title"] = final_result["title"].apply(lambda x: x.replace("{", "").replace("}", ""))
+
+    pd.set_option('display.max_colwidth', None)
+    print(final_result.to_latex(index=False))
     # plot_conferences_code_submission_ratio_from_2018(acl_anthology, plot_dir)
 
 
